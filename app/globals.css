@@ -1,0 +1,269 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/*
+ * ===================================================
+ * SINGLE SOURCE OF TRUTH FOR ALL COLORS
+ * ===================================================
+ * 
+ * ALL colors are defined in this file below in the :root section.
+ * To change ANY color on the website:
+ * 
+ * 1. Update the color values in the :root section below
+ * 2. Update the matching values in tailwind.config.js
+ * 3. That's it! Colors will update everywhere.
+ * 
+ * Note: Components use Tailwind classes (like bg-primary-500) which
+ * get their values from tailwind.config.js. Make sure both files match.
+ */
+
+@layer base {
+  :root {
+    --font-tajawal: 'Tajawal', sans-serif;
+    --font-poppins: 'Poppins', sans-serif;
+    
+    /* ========================================
+       COLOR VARIABLES - CHANGE COLORS HERE
+       ======================================== */
+    
+    /* Primary Colors - Based on Flutter AppColors.primary (rgb(30, 10, 0) = #1E0A00) */
+    --color-primary-50: #f5f3f0;
+    --color-primary-100: #e6e0d8;
+    --color-primary-200: #d4c9bc;
+    --color-primary-300: #b8a896;
+    --color-primary-400: #9d8a70;
+    --color-primary-500: #7a6b56;
+    --color-primary-600: #5a4d3d;
+    --color-primary-700: #3d3328;
+    --color-primary-800: #2a2118;
+    --color-primary-900: #1E0A00;
+    --color-primary-950: #0f0500;
+    
+    /* Secondary Colors - Based on Flutter AppColors.secondary (#b09851) */
+    --color-secondary: #b09851;
+    --color-secondary-light: #c4a96a;
+    --color-secondary-dark: #8d783f;
+    
+    /* Accent Colors - From Flutter AppColors */
+    --color-accent-green: #4A9B7E;
+    --color-accent-green-light: #5fb89a;
+    --color-accent-green-dark: #1B5E4A;
+    --color-accent-gold: #B8860B;
+    --color-accent-gold-light: #d4a017;
+    --color-accent-gold-medium: #B8860B;
+    --color-accent-amber: #ea580c;
+    --color-accent-red: #E81123;
+    
+    /* Background Colors - From Flutter AppColors */
+    --color-bg-primary: #F8F6F0;
+    --color-bg-beige: #F5F1E8;
+    --color-bg-features: #ebe4d1;
+    
+    /* Semantic Colors - Base values (reference primary/accent above) */
+    --color-bg-secondary: #ffffff;
+    --color-bg-card: #ffffff;
+    --color-bg-navbar: rgba(248, 246, 240, 0.98);
+    --color-bg-footer: var(--color-primary-900);
+    
+    --color-text-primary: var(--color-primary-900);
+    --color-text-secondary: var(--color-primary-800);
+    --color-text-muted: #7a6b56;
+    
+    --color-border-primary: var(--color-primary-300);
+    --color-border-secondary: var(--color-primary-200);
+    
+    --color-button-primary: var(--color-primary-900);
+    --color-button-primary-hover: var(--color-primary-800);
+    --color-button-secondary-bg: rgba(255, 255, 255, 0.9);
+    --color-button-secondary-border: var(--color-secondary);
+    
+    /* Beautiful Gradient Definitions - Based on new color scheme */
+    --gradient-body: 
+      radial-gradient(circle at 20% 50%, rgba(184, 152, 81, 0.08) 0%, transparent 50%),
+      radial-gradient(circle at 80% 80%, rgba(74, 155, 126, 0.08) 0%, transparent 50%),
+      radial-gradient(circle at 40% 20%, rgba(235, 228, 209, 0.2) 0%, transparent 50%),
+      linear-gradient(135deg, #F8F6F0 0%, #F5F1E8 50%, #ebe4d1 100%);
+    --gradient-page: 
+      radial-gradient(ellipse at top left, rgba(184, 152, 81, 0.1) 0%, transparent 50%),
+      radial-gradient(ellipse at bottom right, rgba(74, 155, 126, 0.08) 0%, transparent 50%),
+      linear-gradient(180deg, #F8F6F0 0%, #F5F1E8 30%, #ebe4d1 100%);
+    --gradient-footer: linear-gradient(180deg, var(--color-primary-900) 0%, var(--color-primary-800) 50%, var(--color-primary-700) 100%);
+    --gradient-button-primary: linear-gradient(135deg, var(--color-primary-900) 0%, var(--color-primary-800) 100%);
+    --gradient-button-primary-hover: linear-gradient(135deg, var(--color-primary-800) 0%, var(--color-primary-700) 100%);
+    --gradient-section-title: linear-gradient(135deg, var(--color-primary-900) 0%, var(--color-secondary) 100%);
+    --gradient-hero-title: linear-gradient(135deg, var(--color-primary-900) 0%, var(--color-secondary) 100%);
+    --gradient-card: linear-gradient(135deg, #ffffff 0%, #F8F6F0 100%);
+  }
+
+  html[dir='rtl'] {
+    direction: rtl;
+  }
+
+  html[dir='ltr'] {
+    direction: ltr;
+  }
+
+  body {
+    @apply text-primary-900;
+    font-family: var(--font-tajawal);
+    background: var(--gradient-body);
+    background-color: var(--color-bg-primary);
+    background-attachment: fixed;
+    background-size: 100% 100%;
+    min-height: 100vh;
+    color: var(--color-text-primary);
+  }
+
+  html[dir='ltr'] body {
+    font-family: var(--font-poppins);
+  }
+}
+
+@layer components {
+  .container-custom {
+    @apply mx-auto max-w-7xl px-4 sm:px-6 lg:px-8;
+  }
+
+  .btn-primary {
+    @apply text-white font-semibold py-3 px-6 rounded-lg transition-all duration-300 flex items-center gap-2 shadow-lg hover:shadow-xl hover:scale-105;
+    background: var(--gradient-button-primary);
+  }
+  
+  .btn-primary:hover {
+    background: var(--gradient-button-primary-hover);
+    box-shadow: 0 10px 25px rgba(0, 104, 115, 0.4);
+  }
+
+  .btn-secondary {
+    @apply border-2 font-semibold py-3 px-6 rounded-lg transition-all duration-300 hover:shadow-lg;
+    background-color: var(--color-button-secondary-bg);
+    border-color: var(--color-button-secondary-border);
+    color: var(--color-text-primary);
+  }
+  
+  .btn-secondary:hover {
+    @apply bg-white;
+    border-color: var(--color-button-primary);
+    color: var(--color-button-primary);
+  }
+
+  .section-title {
+    @apply text-3xl md:text-4xl lg:text-5xl font-bold text-center mb-4;
+    background: var(--gradient-section-title);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .section-subtitle {
+    @apply text-lg md:text-xl text-center mb-0;
+    color: var(--color-text-secondary);
+    margin-bottom: 5px !important;
+  }
+  
+  /* Background Utilities */
+  .bg-page {
+    background: var(--gradient-page);
+    background-attachment: fixed;
+    background-size: 100% 100%;
+    min-height: 100vh;
+  }
+  
+  .bg-card {
+    background: var(--gradient-card);
+  }
+  
+  .bg-navbar {
+    background-color: var(--color-bg-navbar);
+  }
+  
+  .bg-footer {
+    background: var(--gradient-footer);
+  }
+  
+  /* Animations */
+  @keyframes blob {
+    0%, 100% {
+      transform: translate(0px, 0px) scale(1);
+    }
+    33% {
+      transform: translate(30px, -50px) scale(1.1);
+    }
+    66% {
+      transform: translate(-20px, 20px) scale(0.9);
+    }
+  }
+  
+
+  .animate-blob {
+    animation: blob 7s infinite;
+  }
+  
+  .animation-delay-2000 {
+    animation-delay: 2s;
+  }
+  
+  .animation-delay-4000 {
+    animation-delay: 4s;
+  }
+  
+  /* Text Utilities */
+  .text-primary {
+    color: var(--color-text-primary);
+  }
+  
+  .text-secondary {
+    color: var(--color-text-secondary);
+  }
+  
+  /* Border Utilities */
+  .border-primary {
+    border-color: var(--color-border-primary);
+  }
+  
+  .border-secondary {
+    border-color: var(--color-border-secondary);
+  }
+
+  /* Swiper Custom Styles */
+  .swiper-pagination-bullet-custom {
+    width: 12px;
+    height: 12px;
+    background: var(--color-primary-200);
+    opacity: 1;
+    transition: all 0.3s ease;
+    cursor: pointer;
+  }
+
+  .swiper-pagination-bullet-active-custom {
+    width: 32px;
+    background: var(--color-primary-600);
+    border-radius: 6px;
+  }
+
+  .swiper-button-prev-custom,
+  .swiper-button-next-custom {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    z-index: 10;
+  }
+
+  .swiper-button-prev-custom.swiper-button-disabled,
+  .swiper-button-next-custom.swiper-button-disabled {
+    opacity: 0.35;
+    cursor: auto;
+    pointer-events: none;
+  }
+
+  /* Make Swiper slides equal height */
+  .swiper-slide {
+    height: auto;
+    display: flex;
+  }
+
+  .swiper-slide > * {
+    width: 100%;
+  }
+}

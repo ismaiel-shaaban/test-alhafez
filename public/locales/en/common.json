@@ -1,0 +1,149 @@
+{
+  "nav": {
+    "home": "Home",
+    "features": "Features",
+    "honorBoard": "Honor Board",
+    "teachers": "Teachers",
+    "packages": "Packages",
+    "lessons": "Lessons",
+    "testimonials": "Testimonials",
+    "refundPolicy": "Refund Policy",
+    "register": "Register",
+    "admin": "Admin"
+  },
+  "hero": {
+    "title": "Al-Hafez Academy for Reading Foundation and Quran Memorization",
+    "subtitle": "Memorizing the Holy Quran for all ages, men and women, studying Tajweed rules, and establishing reading for children",
+    "contactDirect": "Contact Us Directly",
+    "register": "Register with Us",
+    "specializedTeachers": "Specialized Teachers",
+    "liveSessions": "Live Sessions",
+    "integratedCurriculum": "Integrated Curriculum"
+  },
+  "features": {
+    "title": "Our Features",
+    "subtitle": "Why Choose Al-Hafez Academy",
+    "feature1": {
+      "title": "Qualified Teachers",
+      "description": "A team of qualified and certified teachers in teaching Quran and Tajweed"
+    },
+    "feature2": {
+      "title": "Flexible Schedule",
+      "description": "A flexible study schedule that fits your daily circumstances"
+    },
+    "feature3": {
+      "title": "For Everyone",
+      "description": "Specialized programs for children and adults, men and women"
+    },
+    "feature4": {
+      "title": "Tajweed Rules",
+      "description": "Learn the correct Tajweed rules for perfect Quran recitation"
+    },
+    "feature5": {
+      "title": "Reading Foundation",
+      "description": "Foundation programs for learning Arabic reading for children"
+    },
+    "feature6": {
+      "title": "Personal Follow-up",
+      "description": "Individual follow-up and special attention to each student"
+    }
+  },
+  "honorBoard": {
+    "title": "Honor Board",
+    "subtitle": "Our Outstanding Students in Quran Memorization"
+  },
+  "teachers": {
+    "title": "Our Teachers",
+    "subtitle": "Our Team of Qualified Teachers"
+  },
+  "lessons": {
+    "title": "Lessons from Our Sessions",
+    "subtitle": "Watch our recorded lessons from live sessions",
+    "noLessons": "No lessons available at the moment"
+  },
+  "packages": {
+    "title": "Our Packages",
+    "subtitle": "Choose the Package That Suits You",
+    "basic": {
+      "name": "Basic Package",
+      "price": "99",
+      "features": [
+        "One session per week",
+        "Personal follow-up",
+        "Educational materials"
+      ]
+    },
+    "standard": {
+      "name": "Standard Package",
+      "price": "199",
+      "features": [
+        "Two sessions per week",
+        "Personal follow-up",
+        "Educational materials",
+        "Completion certificates"
+      ]
+    },
+    "premium": {
+      "name": "Premium Package",
+      "price": "299",
+      "features": [
+        "Three sessions per week",
+        "Intensive personal follow-up",
+        "Advanced educational materials",
+        "Certified certificates",
+        "24/7 Support"
+      ]
+    },
+    "select": "Select Package"
+  },
+  "testimonials": {
+    "title": "Student Testimonials",
+    "subtitle": "What Our Students Say About Us",
+    "addReview": "Add Your Review",
+    "addReviewSubtitle": "Share your experience with Al-Hafez Academy",
+    "name": "Name",
+    "namePlaceholder": "Enter your name",
+    "rating": "Rating",
+    "review": "Review",
+    "reviewPlaceholder": "Write your review here...",
+    "reviewNote": "The same text will be sent for both Arabic and English",
+    "mediaFile": "Media File (Optional)",
+    "uploadClick": "Click to upload",
+    "uploadDrag": "or drag and drop file here",
+    "uploadInfo": "Image or video (jpeg, png, jpg, gif, mp4, mov - Max: 10MB)",
+    "submit": "Submit Review",
+    "submitting": "Submitting...",
+    "success": "Your review has been sent successfully! Thank you.",
+    "error": "An error occurred while sending your review",
+    "errorFileSize": "File size must be less than 10MB",
+    "errorFileType": "File type not supported. Please choose an image (jpeg, png, jpg, gif) or video (mp4, mov)",
+    "noReviews": "No reviews available at the moment"
+  },
+  "register": {
+    "title": "Register with Us",
+    "subtitle": "Start Your Journey in Memorizing the Quran",
+    "fullName": "Full Name",
+    "email": "Email",
+    "phone": "Phone Number",
+    "age": "Age",
+    "gender": "Gender",
+    "male": "Male",
+    "female": "Female",
+    "package": "Choose Package",
+    "message": "Message (Optional)",
+    "submit": "Submit Request",
+    "success": "Your request has been sent successfully! We will contact you soon"
+  },
+  "footer": {
+    "about": "About the Academy",
+    "aboutText": "Al-Hafez Academy for teaching the Holy Quran and Arabic language to all ages",
+    "quickLinks": "Quick Links",
+    "contact": "Contact Us",
+    "followUs": "Follow Us",
+    "rights": "All rights reserved",
+    "refundPolicy": "Refund & Return Policy"
+  },
+  "common": {
+    "seeAll": "See All"
+  }
+}
