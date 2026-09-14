@@ -64,7 +64,7 @@ export interface StudentSession {
   day_of_week_label?: string // Localized day label (e.g., "السبت", "Saturday")
   is_completed: boolean
   completed_at?: string | null
-  status: string // "pending", "completed", etc.
+  status: string // "pending", "completed", "postponed", "absence", etc.
   status_label?: string // Localized status label
   new_date?: string | null
   new_time?: string | null
@@ -92,7 +92,30 @@ export interface StudentSession {
   updated_at?: string
 }
 
-export type SessionStatusFilter = 'pending' | 'completed' | 'postponed' | ''
+export type SessionStatus = 'pending' | 'completed' | 'postponed' | 'absence'
+export type SessionStatusFilter = SessionStatus | ''
+
+export function getSessionStatusLabel(session: Pick<StudentSession, 'status' | 'status_label' | 'is_completed'>): string {
+  if (session.status_label) return session.status_label
+  if (session.status === 'absence') return 'غياب'
+  if (session.is_completed || session.status === 'completed') return 'مكتملة'
+  if (session.status === 'postponed') return 'مؤجلة'
+  return 'قيد الانتظار'
+}
+
+export function getSessionStatusBadgeClass(session: Pick<StudentSession, 'status' | 'is_completed'>): string {
+  if (session.status === 'absence') return 'bg-red-100 text-red-800'
+  if (session.is_completed || session.status === 'completed') return 'bg-green-100 text-green-800'
+  if (session.status === 'postponed') return 'bg-orange-100 text-orange-800'
+  return 'bg-yellow-100 text-yellow-800'
+}
+
+export function getSessionCardClass(session: Pick<StudentSession, 'status' | 'is_completed'>): string {
+  if (session.status === 'absence') return 'border-red-200 bg-red-50'
+  if (session.is_completed || session.status === 'completed') return 'border-green-200 bg-green-50'
+  if (session.status === 'postponed') return 'border-orange-200 bg-orange-50'
+  return 'border-primary-200 bg-white'
+}
 
 export interface SessionFilters {
   student_id?: number

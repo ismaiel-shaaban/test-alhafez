@@ -13,6 +13,7 @@ import {
 import type { Pagination } from '@/lib/api-client'
 import { useAdminStore } from '@/store/useAdminStore'
 import SearchableTeacherSelect from '@/components/admin/SearchableTeacherSelect'
+import StudentAdminActions from '@/components/admin/StudentAdminActions'
 
 const SESSION_SYSTEM_LOGS_PER_PAGE = 20
 
@@ -517,6 +518,20 @@ export default function SessionSystemLogsPage() {
                     </button>
                   </div>
                 </div>
+
+                {log.student_id != null && (
+                  <div className="px-4 sm:px-5 pb-4 border-t border-primary-100">
+                    <p className="text-sm font-semibold text-primary-700 mb-2 text-right pt-3">
+                      إجراءات الطالب
+                    </p>
+                    <StudentAdminActions
+                      studentId={log.student_id}
+                      student={log.student ? { ...log.student, id: log.student_id } : { id: log.student_id }}
+                      hideDeleteActions
+                      hideAuditLogs
+                    />
+                  </div>
+                )}
 
                 <AnimatePresence initial={false}>
                   {open && (

@@ -4,9 +4,10 @@ import { useState, useEffect, useMemo } from 'react'
 import Link from 'next/link'
 import { useAdminStore } from '@/store/useAdminStore'
 import { useAdminPermissions } from '@/hooks/useAdminPermissions'
-import { Plus, Edit, Trash2, Search, X, Eye, Calendar, CheckCircle, Clock, Filter, ChevronDown, ChevronUp, CreditCard, DollarSign, Image as ImageIcon, AlertTriangle, History } from 'lucide-react'
+import { Plus, Edit, Trash2, Search, X, Eye, Calendar, CheckCircle, Clock, Filter, ChevronDown, ChevronUp, CreditCard, DollarSign, Image as ImageIcon, AlertTriangle, History, AlertCircle } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import SearchableTeacherSelect from '@/components/admin/SearchableTeacherSelect'
+import CompactSubscriptionSettings from '@/components/admin/CompactSubscriptionSettings'
 import WhatsAppLink from '@/components/admin/WhatsAppLink'
 import {
   parseWeeklyScheduleFromApi,
@@ -17,8 +18,14 @@ import {
   type WeeklyScheduleForm,
   type WeeklyDaysForm,
 } from '@/lib/weekly-schedule-utils'
-import { STUDENT_JOURNEY_STATUS_OPTIONS, type StudentJourneyStatus } from '@/lib/api/students'
+import { STUDENTS_JOURNEY_STATUS_FILTER_OPTIONS, type StudentJourneyStatus } from '@/lib/api/students'
 import { normalizeStudentSearchQuery, sanitizeStudentPhoneInput } from '@/lib/student-search'
+import {
+  getSessionStatusLabel,
+  getSessionStatusBadgeClass,
+  getSessionCardClass,
+  type SessionStatus,
+} from '@/lib/api/sessions'
 
 function applyDerivedSessionCounts(
   payload: Record<string, unknown>,
@@ -32,6 +39,35 @@ function applyDerivedSessionCounts(
   if (counts) {
     payload.weekly_sessions = counts.weekly_sessions
     payload.monthly_sessions = counts.monthly_sessions
+  }
+}
+
+function resolvePastSessionsFromStudent(fullStudent: any) {
+  if (fullStudent.past_sessions_count != null) {
+    return {
+      past_sessions_mode: 'count' as const,
+      past_sessions_count: String(fullStudent.past_sessions_count),
+      subscription_start_date: '',
+    }
+  }
+  if (fullStudent.past_sessions_date) {
+    const date = String(fullStudent.past_sessions_date).split('T')[0].split(' ')[0]
+    return {
+      past_sessions_mode: 'date' as const,
+      past_sessions_count: '',
+      subscription_start_date: date,
+    }
+  }
+  return { past_sessions_mode: '' as const, past_sessions_count: '' }
+}
+
+function applyPastSessionsToPayload(
+  payload: Record<string, unknown>,
+  mode: '' | 'count' | 'date',
+  count: string
+) {
+  if (mode === 'count' && count !== '') {
+    payload.past_sessions_count = parseInt(count, 10)
   }
 }
 import {
@@ -90,9 +126,6 @@ export default function StudentsPage() {
   
   // Filters
   const [filters, setFilters] = useState({
-    type: '' as 'website' | 'admin' | 'app' | '',
-    package_id: '',
-    gender: '' as 'male' | 'female' | '',
     teacher_id: '',
     search: '',
     unpaid_months_count: '',
@@ -142,6 +175,8 @@ export default function StudentsPage() {
     subscription_start_date: '',
     paid_subscriptions_count: '',
     payment_account_id: '',
+    past_sessions_mode: '' as '' | 'count' | 'date',
+    past_sessions_count: '',
   })
   const [paymentAccounts, setPaymentAccounts] = useState<PaymentAccount[]>([])
   const [editLinkedPaymentAccount, setEditLinkedPaymentAccount] = useState<PaymentAccount | null>(null)
@@ -175,6 +210,8 @@ export default function StudentsPage() {
     paid_months_count: '',
     subscription_start_date: '',
     payment_account_id: '',
+    past_sessions_mode: '' as '' | 'count' | 'date',
+    past_sessions_count: '',
   })
 
   const paymentAccountSelectOptions = useMemo(() => {
@@ -234,9 +271,6 @@ export default function StudentsPage() {
   // Helper function to build API filters from current state
   const buildApiFilters = () => {
     const apiFilters: any = {}
-    if (filters.type) apiFilters.type = filters.type
-    if (filters.package_id) apiFilters.package_id = parseInt(filters.package_id)
-    if (filters.gender) apiFilters.gender = filters.gender
     if (filters.teacher_id) apiFilters.teacher_id = parseInt(filters.teacher_id)
     if (filters.search) apiFilters.search = normalizeStudentSearchQuery(filters.search)
     if (filters.unpaid_months_count) apiFilters.unpaid_months_count = parseInt(filters.unpaid_months_count)
@@ -272,11 +306,11 @@ export default function StudentsPage() {
   // Apply filters when they change
   useEffect(() => {
     setCurrentPage(1) // Reset to first page when filters change
-  }, [filters.type, filters.package_id, filters.gender, filters.teacher_id, filters.search, filters.unpaid_months_count, filters.incomplete_sessions_count, filters.subscription_days_remaining, filters.payment_status, filters.is_paused, filters.has_consecutive_absences, filters.student_journey_status, filters.subscription_added_mode, filters.subscription_added_date, filters.subscription_added_from, filters.subscription_added_to, filters.subscription_added_month])
+  }, [filters.teacher_id, filters.search, filters.unpaid_months_count, filters.incomplete_sessions_count, filters.subscription_days_remaining, filters.payment_status, filters.is_paused, filters.has_consecutive_absences, filters.student_journey_status, filters.subscription_added_mode, filters.subscription_added_date, filters.subscription_added_from, filters.subscription_added_to, filters.subscription_added_month])
 
   useEffect(() => {
     fetchStudents(buildApiFilters())
-  }, [currentPage, filters.type, filters.package_id, filters.gender, filters.teacher_id, filters.search, filters.unpaid_months_count, filters.incomplete_sessions_count, filters.subscription_days_remaining, filters.payment_status, filters.is_paused, filters.has_consecutive_absences, filters.student_journey_status, filters.subscription_added_mode, filters.subscription_added_date, filters.subscription_added_from, filters.subscription_added_to, filters.subscription_added_month, fetchStudents])
+  }, [currentPage, filters.teacher_id, filters.search, filters.unpaid_months_count, filters.incomplete_sessions_count, filters.subscription_days_remaining, filters.payment_status, filters.is_paused, filters.has_consecutive_absences, filters.student_journey_status, filters.subscription_added_mode, filters.subscription_added_date, filters.subscription_added_from, filters.subscription_added_to, filters.subscription_added_month, fetchStudents])
 
   // Students are now filtered on the API side, so we use them directly
   const filteredStudents = students
@@ -505,6 +539,9 @@ export default function StudentsPage() {
           '',
         subscription_start_date: hasSubscriptions ? '' : subscriptionStartDate,
         paid_subscriptions_count: '',
+        ...(hasSubscriptions
+          ? { past_sessions_mode: '' as const, past_sessions_count: '' }
+          : resolvePastSessionsFromStudent(fullStudent)),
       })
       setShowEditModal(true)
     } catch (error: any) {
@@ -515,6 +552,13 @@ export default function StudentsPage() {
   const handleSaveEdit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (editingId) {
+      if (!editingStudentHasSubscriptions && editForm.past_sessions_mode === 'count') {
+        if (editForm.past_sessions_count === '') {
+          alert('يرجى إدخال عدد الحصص المكتملة سابقاً')
+          return
+        }
+      }
+
       setIsSubmitting(true)
       try {
         // Build request data - weekly_schedule takes precedence over hour and weekly_days
@@ -558,7 +602,12 @@ export default function StudentsPage() {
           updateData.paid_months_count = parseInt(editForm.paid_months_count)
         }
         if (!editingStudentHasSubscriptions) {
-          if (editForm.subscription_start_date) {
+          applyPastSessionsToPayload(
+            updateData,
+            editForm.past_sessions_mode,
+            editForm.past_sessions_count
+          )
+          if (editForm.past_sessions_mode !== 'count' && editForm.subscription_start_date) {
             updateData.subscription_start_date = editForm.subscription_start_date
           }
           if (editForm.paid_subscriptions_count) {
@@ -597,6 +646,8 @@ export default function StudentsPage() {
           subscription_start_date: '',
           paid_subscriptions_count: '',
           payment_account_id: '',
+          past_sessions_mode: '' as '' | 'count' | 'date',
+          past_sessions_count: '',
         })
         setShowEditModal(false)
         setEditingStudentHasSubscriptions(false)
@@ -641,6 +692,8 @@ export default function StudentsPage() {
         subscription_start_date: '',
         paid_subscriptions_count: '',
         payment_account_id: '',
+        past_sessions_mode: '' as '' | 'count' | 'date',
+        past_sessions_count: '',
       })
   }
 
@@ -669,6 +722,11 @@ export default function StudentsPage() {
 
   const handleAddStudent = async (e: React.FormEvent) => {
     e.preventDefault()
+    if (newStudent.past_sessions_mode === 'count' && newStudent.past_sessions_count === '') {
+      alert('يرجى إدخال عدد الحصص المكتملة سابقاً')
+      return
+    }
+
     setIsSubmitting(true)
     try {
       // Build request data
@@ -707,7 +765,12 @@ export default function StudentsPage() {
       if (newStudent.paid_months_count) {
         createData.paid_months_count = parseInt(newStudent.paid_months_count)
       }
-      if (newStudent.subscription_start_date) {
+      applyPastSessionsToPayload(
+        createData,
+        newStudent.past_sessions_mode,
+        newStudent.past_sessions_count
+      )
+      if (newStudent.past_sessions_mode !== 'count' && newStudent.subscription_start_date) {
         createData.subscription_start_date = newStudent.subscription_start_date
       }
 
@@ -740,6 +803,8 @@ export default function StudentsPage() {
         paid_months_count: '',
         subscription_start_date: '',
         payment_account_id: '',
+        past_sessions_mode: '' as '' | 'count' | 'date',
+        past_sessions_count: '',
       })
       setShowAddModal(false)
     } catch (error: any) {
@@ -786,28 +851,25 @@ export default function StudentsPage() {
     }
   }
 
-  const handleCompleteSession = async (id: number) => {
-    if (confirm('هل أنت متأكد من تسجيل إتمام هذه الحصة؟')) {
-      try {
-        await completeSession(id)
-        if (selectedStudentId) {
-          await fetchSessions({ student_id: selectedStudentId, per_page: 10000 })
-        }
-      } catch (error: any) {
-        alert(error.message || 'حدث خطأ أثناء تسجيل إتمام الحصة')
-      }
+  const refreshStudentSessions = async () => {
+    if (selectedStudentId) {
+      await fetchSessions({ student_id: selectedStudentId, per_page: 10000 })
     }
   }
 
-  const handleRevertToPending = async (id: number) => {
-    if (!confirm('هل أنت متأكد من إرجاع الحصة إلى قيد الانتظار؟')) return
+  const handleSessionStatusChange = async (sessionId: number, newStatus: SessionStatus) => {
     try {
-      await revertSessionToPending(id)
-      if (selectedStudentId) {
-        await fetchSessions({ student_id: selectedStudentId, per_page: 10000 })
+      const session = studentSessions.find((item) => item.id === sessionId)
+      if (newStatus === 'completed') {
+        await completeSession(sessionId)
+      } else if (newStatus === 'pending' && session?.is_completed) {
+        await revertSessionToPending(sessionId)
+      } else {
+        await updateSession(sessionId, { status: newStatus } as any)
       }
+      await refreshStudentSessions()
     } catch (error: any) {
-      alert(error.message || 'فشل إرجاع الحصة قيد الانتظار')
+      alert(error.message || 'فشل تحديث حالة الحصة')
     }
   }
 
@@ -815,9 +877,7 @@ export default function StudentsPage() {
     if (confirm('هل أنت متأكد من حذف هذه الحصة؟')) {
       try {
         await deleteSession(id)
-        if (selectedStudentId) {
-          await fetchSessions({ student_id: selectedStudentId, per_page: 10000 })
-        }
+        await refreshStudentSessions()
       } catch (error: any) {
         alert(error.message || 'حدث خطأ أثناء حذف الحصة')
       }
@@ -893,49 +953,6 @@ export default function StudentsPage() {
             </div>
           </div>
           <div>
-            <label className="block text-primary-900 font-semibold mb-2 text-right">نوع التسجيل</label>
-            <select
-              value={filters.type}
-              onChange={(e) => setFilters({ ...filters, type: e.target.value as 'website' | 'admin' | 'app' | '' })}
-              className="w-full px-4 py-2 border-2 border-primary-200 rounded-lg focus:border-primary-500 outline-none text-right"
-              dir="rtl"
-            >
-              <option value="">جميع الأنواع</option>
-              <option value="website">من الموقع</option>
-              <option value="admin">من الإدارة</option>
-              <option value="app">من التطبيق</option>
-            </select>
-          </div>
-          <div>
-            <label className="block text-primary-900 font-semibold mb-2 text-right">الباقة</label>
-            <select
-              value={filters.package_id}
-              onChange={(e) => setFilters({ ...filters, package_id: e.target.value })}
-              className="w-full px-4 py-2 border-2 border-primary-200 rounded-lg focus:border-primary-500 outline-none text-right"
-              dir="rtl"
-            >
-              <option value="">جميع الباقات</option>
-              {packages.map((pkg) => (
-                <option key={pkg.id} value={pkg.id}>
-                  {pkg.name}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div>
-            <label className="block text-primary-900 font-semibold mb-2 text-right">الجنس</label>
-            <select
-              value={filters.gender}
-              onChange={(e) => setFilters({ ...filters, gender: e.target.value as 'male' | 'female' | '' })}
-              className="w-full px-4 py-2 border-2 border-primary-200 rounded-lg focus:border-primary-500 outline-none text-right"
-              dir="rtl"
-            >
-              <option value="">جميع الأجناس</option>
-              <option value="male">ذكر</option>
-              <option value="female">أنثى</option>
-            </select>
-          </div>
-          <div>
             <label className="block text-primary-900 font-semibold mb-2 text-right">المعلم</label>
             <SearchableTeacherSelect
               value={filters.teacher_id}
@@ -1002,7 +1019,7 @@ export default function StudentsPage() {
               dir="rtl"
             >
               <option value="">جميع المراحل</option>
-              {STUDENT_JOURNEY_STATUS_OPTIONS.map((option) => (
+              {STUDENTS_JOURNEY_STATUS_FILTER_OPTIONS.map((option) => (
                 <option key={option.value} value={option.value}>
                   {option.label}
                 </option>
@@ -1118,7 +1135,7 @@ export default function StudentsPage() {
         </div>
       ) : filteredStudents.length === 0 ? (
         <div className="bg-white rounded-xl border-2 border-primary-200 p-8 text-center text-primary-600 shadow-lg">
-          {filters.search || filters.package_id || filters.gender || filters.teacher_id || filters.unpaid_months_count || filters.incomplete_sessions_count || filters.subscription_days_remaining || filters.payment_status || filters.is_paused || filters.has_consecutive_absences || filters.student_journey_status || filters.subscription_added_mode
+          {filters.search || filters.teacher_id || filters.unpaid_months_count || filters.incomplete_sessions_count || filters.subscription_days_remaining || filters.payment_status || filters.is_paused || filters.has_consecutive_absences || filters.student_journey_status || filters.subscription_added_mode
             ? 'لا توجد نتائج'
             : 'لا يوجد طلاب مسجلون بعد'}
         </div>
@@ -2345,27 +2362,28 @@ export default function StudentsPage() {
                   {studentSessions.map((session, index) => (
                     <div
                       key={session.id}
-                      className={`p-4 rounded-lg border-2 ${
-                        session.is_completed
-                          ? 'border-green-200 bg-green-50'
-                          : 'border-primary-200 bg-white'
-                      }`}
+                      className={`p-4 rounded-lg border-2 ${getSessionCardClass(session)}`}
                     >
-                      <div className="flex items-center justify-between">
+                      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                         <div className="flex items-center gap-4">
-                          {session.is_completed ? (
-                            <CheckCircle className="w-6 h-6 text-green-600" />
+                          {session.is_completed || session.status === 'completed' ? (
+                            <CheckCircle className="w-6 h-6 text-green-600 flex-shrink-0" />
+                          ) : session.status === 'absence' ? (
+                            <AlertCircle className="w-6 h-6 text-red-600 flex-shrink-0" />
                           ) : (
-                            <Clock className="w-6 h-6 text-primary-600" />
+                            <Clock className="w-6 h-6 text-primary-600 flex-shrink-0" />
                           )}
                           <div>
-                            <div className="flex items-center gap-3 mb-1">
+                            <div className="flex flex-wrap items-center gap-3 mb-1">
                               <span className="inline-flex items-center justify-center w-10 h-10 rounded-full bg-primary-600 text-white font-bold text-base sm:text-lg flex-shrink-0">
                                 {(session as any).session_number || index + 1}
                               </span>
                               <p className="font-bold text-lg sm:text-xl text-primary-900">
                                 {session.session_date} - {session.session_time}
                               </p>
+                              <span className={`px-2 py-1 rounded-full text-xs font-medium ${getSessionStatusBadgeClass(session)}`}>
+                                {getSessionStatusLabel(session)}
+                              </span>
                             </div>
                             <p className="text-sm text-primary-600">
                               {session.day_of_week_label || session.day_of_week}
@@ -2381,18 +2399,21 @@ export default function StudentsPage() {
                             )}
                           </div>
                         </div>
-                        <div className="flex items-center gap-2">
-                          {!session.is_completed && (
-                            <button
-                              onClick={() => handleCompleteSession(session.id)}
-                              className="px-3 py-1 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm"
-                            >
-                              إتمام
-                            </button>
-                          )}
+                        <div className="flex flex-wrap items-center gap-2">
+                          <select
+                            value={session.status || (session.is_completed ? 'completed' : 'pending')}
+                            onChange={(e) => handleSessionStatusChange(session.id, e.target.value as SessionStatus)}
+                            className="px-3 py-1.5 border-2 border-primary-300 rounded-lg focus:border-primary-500 outline-none text-sm font-medium bg-white"
+                            dir="rtl"
+                          >
+                            {session.status === 'pending' && <option value="pending">قيد الانتظار</option>}
+                            <option value="completed">مكتملة</option>
+                            {session.status === 'postponed' && <option value="postponed">مؤجلة</option>}
+                            <option value="absence">غياب</option>
+                          </select>
                           {session.is_completed && (
                             <button
-                              onClick={() => handleRevertToPending(session.id)}
+                              onClick={() => handleSessionStatusChange(session.id, 'pending')}
                               className="px-3 py-1 bg-amber-100 text-amber-800 hover:bg-amber-200 rounded-lg transition-colors text-sm"
                             >
                               إرجاع قيد الانتظار
@@ -2654,6 +2675,19 @@ export default function StudentsPage() {
                     />
                   </div>
                 </div>
+                <CompactSubscriptionSettings
+                  idPrefix="add_student"
+                  value={{
+                    past_sessions_mode: newStudent.past_sessions_mode,
+                    past_sessions_count: newStudent.past_sessions_count,
+                    subscription_start_date: newStudent.subscription_start_date,
+                    past_months_count: newStudent.past_months_count,
+                    paid_months_count: newStudent.paid_months_count,
+                  }}
+                  onChange={(subscriptionSettings) =>
+                    setNewStudent({ ...newStudent, ...subscriptionSettings })
+                  }
+                />
                 <div>
                   <div className="flex items-center justify-between mb-4">
                     <label className="block text-primary-900 font-semibold">جدول الأسبوع</label>
@@ -2877,51 +2911,6 @@ export default function StudentsPage() {
                   </div>
                 </div>
                 
-                {/* Subscription Fields Section */}
-                <div className="border-t-2 border-primary-200 pt-4 mt-4">
-                  <h3 className="text-lg font-bold text-primary-900 mb-4 text-right">إعدادات الاشتراكات (اختياري)</h3>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-3 sm:gap-4">
-                    <div>
-                      <label className="block text-primary-900 font-semibold mb-2 text-right">
-                        عدد الأشهر السابقة (past_months_count)
-                      </label>
-                      <input
-                        type="number"
-                       
-                        value={newStudent.past_months_count}
-                        onChange={(e) => setNewStudent({ ...newStudent, past_months_count: e.target.value })}
-                        className="w-full px-4 py-2 border-2 border-primary-200 rounded-lg focus:border-primary-500 outline-none"
-                        placeholder="0-120"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-primary-900 font-semibold mb-2 text-right">
-                        عدد الأشهر المدفوعة (paid_months_count)
-                      </label>
-                      <input
-                        type="number"
-                        min="0"
-                        max="120"
-                        value={newStudent.paid_months_count}
-                        onChange={(e) => setNewStudent({ ...newStudent, paid_months_count: e.target.value })}
-                        className="w-full px-4 py-2 border-2 border-primary-200 rounded-lg focus:border-primary-500 outline-none"
-                        placeholder="0-120"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-primary-900 font-semibold mb-2 text-right">
-                        تاريخ بداية الاشتراك
-                      </label>
-                      <input
-                        type="date"
-                        value={newStudent.subscription_start_date}
-                        onChange={(e) => setNewStudent({ ...newStudent, subscription_start_date: e.target.value })}
-                        className="w-full px-4 py-2 border-2 border-primary-200 rounded-lg focus:border-primary-500 outline-none"
-                      />
-                    </div>
-                  </div>
-                </div>
-
                 <div className="flex items-center gap-4 pt-4">
                   <button
                     type="submit"
@@ -3072,6 +3061,20 @@ export default function StudentsPage() {
                     />
                   </div>
                 </div>
+                <CompactSubscriptionSettings
+                  idPrefix="edit_student"
+                  showPastSessions={!editingStudentHasSubscriptions}
+                  value={{
+                    past_sessions_mode: editForm.past_sessions_mode,
+                    past_sessions_count: editForm.past_sessions_count,
+                    subscription_start_date: editForm.subscription_start_date,
+                    past_months_count: editForm.past_months_count,
+                    paid_months_count: editForm.paid_months_count,
+                  }}
+                  onChange={(subscriptionSettings) =>
+                    setEditForm({ ...editForm, ...subscriptionSettings })
+                  }
+                />
                 <div>
                   <div className="flex items-center justify-between mb-4">
                     <label className="block text-primary-900 font-semibold">جدول الأسبوع</label>
@@ -3294,52 +3297,6 @@ export default function StudentsPage() {
                         <option value="أجنبي">أجنبي</option>
                       </select>
                     </div>
-                  </div>
-                </div>
-                
-                <div className="border-t-2 border-primary-200 pt-4 mt-4">
-                  <h3 className="text-lg font-bold text-primary-900 mb-4 text-right">إعدادات الاشتراكات</h3>
-                  <div className={`grid grid-cols-1 gap-3 sm:gap-4 ${editingStudentHasSubscriptions ? 'md:grid-cols-2' : 'md:grid-cols-3'}`}>
-                    <div>
-                      <label className="block text-primary-900 font-semibold mb-2 text-right">
-                        عدد الأشهر السابقة (past_months_count)
-                      </label>
-                      <input
-                        type="number"
-                       
-                        value={editForm.past_months_count}
-                        onChange={(e) => setEditForm({ ...editForm, past_months_count: e.target.value })}
-                        className="w-full px-4 py-2 border-2 border-primary-200 rounded-lg focus:border-primary-500 outline-none"
-                        placeholder="0-120"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-primary-900 font-semibold mb-2 text-right">
-                        عدد الأشهر المدفوعة (paid_months_count)
-                      </label>
-                      <input
-                        type="number"
-                        min="0"
-                        max="120"
-                        value={editForm.paid_months_count}
-                        onChange={(e) => setEditForm({ ...editForm, paid_months_count: e.target.value })}
-                        className="w-full px-4 py-2 border-2 border-primary-200 rounded-lg focus:border-primary-500 outline-none"
-                        placeholder="0-120"
-                      />
-                    </div>
-                    {!editingStudentHasSubscriptions && (
-                    <div>
-                      <label className="block text-primary-900 font-semibold mb-2 text-right">
-                        تاريخ بداية الاشتراك
-                      </label>
-                      <input
-                        type="date"
-                        value={editForm.subscription_start_date}
-                        onChange={(e) => setEditForm({ ...editForm, subscription_start_date: e.target.value })}
-                        className="w-full px-4 py-2 border-2 border-primary-200 rounded-lg focus:border-primary-500 outline-none"
-                      />
-                    </div>
-                    )}
                   </div>
                 </div>
 
