@@ -2,7 +2,21 @@
 
 import { useEffect, useState, useRef } from 'react'
 import { Calendar as CalendarIcon, Clock, X, User, GraduationCap, CheckCircle, AlertCircle, Filter, Search, ChevronDown, FileText, Star, Image as ImageIcon, ExternalLink } from 'lucide-react'
-import { getSessionsByDate, listSessions, StudentSession, SessionReport, SessionEvaluation, revertSessionToPending, updateSession, completeSession, deleteSession, type SessionStatusFilter } from '@/lib/api/sessions'
+import {
+  getSessionsByDate,
+  listSessions,
+  StudentSession,
+  SessionReport,
+  SessionEvaluation,
+  revertSessionToPending,
+  updateSession,
+  completeSession,
+  deleteSession,
+  getSessionStatusLabel,
+  getSessionStatusBadgeClass,
+  type SessionStatusFilter,
+  type SessionStatus,
+} from '@/lib/api/sessions'
 import type { Teacher } from '@/lib/api/teachers'
 import { useAdminStore } from '@/store/useAdminStore'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -169,7 +183,7 @@ export default function SessionsPage() {
     const computeStatistics = (sess: StudentSession[]) => ({
       total_sessions: sess.length,
       completed_sessions: sess.filter((s) => s.is_completed).length,
-      pending_sessions: sess.filter((s) => !s.is_completed && s.status !== 'postponed').length,
+      pending_sessions: sess.filter((s) => !s.is_completed && s.status !== 'postponed' && s.status !== 'absence').length,
     })
 
     const loadSessions = async () => {
@@ -313,7 +327,7 @@ export default function SessionsPage() {
     const computeStatistics = (sess: StudentSession[]) => ({
       total_sessions: sess.length,
       completed_sessions: sess.filter((s) => s.is_completed).length,
-      pending_sessions: sess.filter((s) => !s.is_completed && s.status !== 'postponed').length,
+      pending_sessions: sess.filter((s) => !s.is_completed && s.status !== 'postponed' && s.status !== 'absence').length,
     })
 
     if (withoutTeacherFilter) {
@@ -344,7 +358,7 @@ export default function SessionsPage() {
     }
   }
 
-  const handleStatusChange = async (sessionId: number, newStatus: 'pending' | 'completed' | 'postponed') => {
+  const handleStatusChange = async (sessionId: number, newStatus: SessionStatus) => {
     setUpdatingSessionId(sessionId)
     try {
       const session = sessions.find((s) => s.id === sessionId)
@@ -403,6 +417,7 @@ export default function SessionsPage() {
                   <option value="pending">قيد الانتظار</option>
                   <option value="completed">مكتملة</option>
                   <option value="postponed">مؤجلة</option>
+                  <option value="absence">غياب</option>
                 </select>
               </div>
 
@@ -678,17 +693,14 @@ export default function SessionsPage() {
 
                         <div className="flex flex-col items-end gap-2 flex-shrink-0">
                           <span
-                            className={`px-2 sm:px-3 py-1 rounded-full text-xs sm:text-sm font-medium flex items-center gap-1 sm:gap-2 ${session.is_completed
-                                ? 'bg-green-100 text-green-800'
-                                : 'bg-yellow-100 text-yellow-800'
-                              }`}
+                            className={`px-2 sm:px-3 py-1 rounded-full text-xs sm:text-sm font-medium flex items-center gap-1 sm:gap-2 ${getSessionStatusBadgeClass(session)}`}
                           >
-                            {session.is_completed ? (
+                            {session.is_completed || session.status === 'completed' ? (
                               <CheckCircle className="w-3 h-3 sm:w-4 sm:h-4" />
                             ) : (
                               <AlertCircle className="w-3 h-3 sm:w-4 sm:h-4" />
                             )}
-                            <span className="whitespace-nowrap">{session.status_label || (session.is_completed ? 'مكتملة' : 'قيد الانتظار')}</span>
+                            <span className="whitespace-nowrap">{getSessionStatusLabel(session)}</span>
                           </span>
                           {session.new_date && (
                             <span className="text-xs text-orange-600 bg-orange-50 px-2 py-1 rounded whitespace-nowrap">
@@ -846,7 +858,7 @@ export default function SessionsPage() {
                   <div className="flex flex-wrap items-center gap-2">
                     <select
                       value={selectedSession.status || (selectedSession.is_completed ? 'completed' : 'pending')}
-                      onChange={(e) => handleStatusChange(selectedSession.id, e.target.value as 'pending' | 'completed' | 'postponed')}
+                      onChange={(e) => handleStatusChange(selectedSession.id, e.target.value as SessionStatus)}
                       disabled={updatingSessionId === selectedSession.id}
                       className="px-3 py-1.5 border-2 border-primary-300 rounded-lg focus:border-primary-500 outline-none text-sm font-medium disabled:opacity-50"
                       dir="rtl"
@@ -854,6 +866,7 @@ export default function SessionsPage() {
                      {selectedSession.status == 'pending' && <option value="pending">قيد الانتظار</option>}
                       <option value="completed">مكتملة</option>
                       {selectedSession.status == 'postponed' && <option value="postponed">مؤجلة</option>}
+                      <option value="absence">غياب</option>
                     </select>
                     {selectedSession.is_completed && (
                       <button
@@ -873,11 +886,9 @@ export default function SessionsPage() {
                     </button>
                   </div>
                   <span
-                    className={`inline-block mt-2 px-2 sm:px-3 py-1 rounded-full text-xs sm:text-sm font-medium ${
-                      selectedSession.is_completed ? 'bg-green-100 text-green-800' : selectedSession.status === 'postponed' ? 'bg-orange-100 text-orange-800' : 'bg-yellow-100 text-yellow-800'
-                    }`}
+                    className={`inline-block mt-2 px-2 sm:px-3 py-1 rounded-full text-xs sm:text-sm font-medium ${getSessionStatusBadgeClass(selectedSession)}`}
                   >
-                    {selectedSession.status_label || (selectedSession.is_completed ? 'مكتملة' : selectedSession.status === 'postponed' ? 'مؤجلة' : 'قيد الانتظار')}
+                    {getSessionStatusLabel(selectedSession)}
                   </span>
                   {selectedSession.completed_at && (
                     <p className="text-xs sm:text-sm text-primary-600 mt-2">

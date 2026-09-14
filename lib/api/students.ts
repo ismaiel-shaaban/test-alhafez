@@ -117,6 +117,8 @@ export interface Student {
   past_months_count?: number // Optional, may be returned by API
   paid_months_count?: number // Optional, may be returned by API
   subscription_start_date?: string // Optional, may be returned by API
+  past_sessions_count?: number // Optional, number of past sessions to mark as completed
+  past_sessions_date?: string // Optional, YYYY-MM-DD — alternative to count for past sessions
   is_paused?: boolean // Whether the student has paused subscriptions
   created_at?: string
   updated_at?: string
@@ -130,10 +132,17 @@ export const STUDENT_JOURNEY_STATUS_OPTIONS: { value: StudentJourneyStatus; labe
   { value: 'subscribed', label: 'مشترك' },
 ]
 
-export const WEBSITE_STUDENT_JOURNEY_STATUS_FILTER_OPTIONS: { value: StudentJourneyStatus; label: string }[] = [
-  ...STUDENT_JOURNEY_STATUS_OPTIONS,
+export const WEBSITE_STUDENT_JOURNEY_STATUS_FILTER_OPTIONS: { value: StudentJourneyStatus; label: string }[] =
+  STUDENT_JOURNEY_STATUS_OPTIONS
+
+export const SUBSCRIBED_PAYMENT_JOURNEY_STATUS_OPTIONS: { value: StudentJourneyStatus; label: string }[] = [
   { value: 'subscribed-paid', label: 'اشترك ودفع' },
   { value: 'subscribed-unpaid', label: 'اشترك ولم يدفع' },
+]
+
+export const STUDENTS_JOURNEY_STATUS_FILTER_OPTIONS: { value: StudentJourneyStatus; label: string }[] = [
+  ...STUDENT_JOURNEY_STATUS_OPTIONS,
+  ...SUBSCRIBED_PAYMENT_JOURNEY_STATUS_OPTIONS,
 ]
 
 export interface StudentFilters {
@@ -185,6 +194,8 @@ export interface CreateStudentRequest {
   past_months_count?: number // Optional, integer, min: 0, max: 120. Number of past months to create subscriptions for.
   paid_months_count?: number // Optional, integer, min: 0, max: 120. Number of paid months.
   subscription_start_date?: string // Optional, YYYY-MM-DD format. Required if past_months_count is provided. Used to calculate past subscriptions.
+  past_sessions_count?: number // Optional, integer, min: 0. Number of past sessions to mark as completed.
+  past_sessions_date?: string // Optional, YYYY-MM-DD. Alternative to past_sessions_count — calculate from date.
   paid_subscriptions_count?: number // Optional, integer, min: 0. Number of paid subscriptions (for update only)
 }
 

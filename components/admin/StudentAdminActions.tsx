@@ -79,12 +79,14 @@ export default function StudentAdminActions({
   studentId,
   student: studentProp,
   hideDeleteActions = false,
+  hideAuditLogs = false,
   className = '',
   onStudentChanged,
 }: {
   studentId: number
   student?: { id: number; name?: string; unpaid_subscriptions_list?: any[] } | null
   hideDeleteActions?: boolean
+  hideAuditLogs?: boolean
   className?: string
   onStudentChanged?: () => void
 }) {
@@ -698,13 +700,15 @@ export default function StudentAdminActions({
           >
             <Eye className="w-4 h-4" />
           </button>
-          <Link
-            href={`/admin/students/${studentId}/audit-logs`}
-            className="p-2 text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors inline-flex"
-            title="سجل العمليات"
-          >
-            <History className="w-4 h-4" />
-          </Link>
+          {!hideAuditLogs && (
+            <Link
+              href={`/admin/students/${studentId}/audit-logs`}
+              className="p-2 text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors inline-flex"
+              title="سجل العمليات"
+            >
+              <History className="w-4 h-4" />
+            </Link>
+          )}
           <button
             onClick={() => handleViewSubscriptionsOnly(studentForActions)}
             className="p-2 text-violet-600 hover:bg-violet-50 rounded-lg transition-colors"

@@ -7,6 +7,7 @@ import { useAdminPermissions } from '@/hooks/useAdminPermissions'
 import { Search, Eye, X, Edit, Trash2, AlertTriangle, Plus, CreditCard, Calendar, CheckCircle, Clock } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import SearchableTeacherSelect from '@/components/admin/SearchableTeacherSelect'
+import CompactSubscriptionSettings from '@/components/admin/CompactSubscriptionSettings'
 import WhatsAppLink from '@/components/admin/WhatsAppLink'
 import {
   listPaymentAccounts,
@@ -71,8 +72,6 @@ const DAYS_OF_WEEK = [
   { value: 'friday', label: 'الجمعة', arName: 'الجمعة' },
 ]
 
-type TabType = 'website' | 'app'
-
 const emptyEditForm = () => ({
   name: '',
   phone: '',
@@ -90,7 +89,38 @@ const emptyEditForm = () => ({
   past_months_count: '0',
   paid_months_count: '',
   subscription_start_date: '',
+  past_sessions_mode: '' as '' | 'count' | 'date',
+  past_sessions_count: '',
 })
+
+function resolvePastSessionsFromStudent(fullStudent: any) {
+  if (fullStudent.past_sessions_count != null) {
+    return {
+      past_sessions_mode: 'count' as const,
+      past_sessions_count: String(fullStudent.past_sessions_count),
+      subscription_start_date: '',
+    }
+  }
+  if (fullStudent.past_sessions_date) {
+    const date = String(fullStudent.past_sessions_date).split('T')[0].split(' ')[0]
+    return {
+      past_sessions_mode: 'date' as const,
+      past_sessions_count: '',
+      subscription_start_date: date,
+    }
+  }
+  return { past_sessions_mode: '' as const, past_sessions_count: '' }
+}
+
+function applyPastSessionsToPayload(
+  payload: Record<string, unknown>,
+  mode: '' | 'count' | 'date',
+  count: string
+) {
+  if (mode === 'count' && count !== '') {
+    payload.past_sessions_count = parseInt(count, 10)
+  }
+}
 
 export default function WebsiteStudentsPage() {
   const { canDeleteStudents } = useAdminPermissions()
@@ -117,15 +147,9 @@ export default function WebsiteStudentsPage() {
     error 
   } = useAdminStore()
   
-  const [activeTab, setActiveTab] = useState<TabType>('website')
   const [searchTerm, setSearchTerm] = useState('')
   const [journeyStatusFilter, setJourneyStatusFilter] = useState<StudentJourneyStatus | ''>('')
   const [teacherFilterId, setTeacherFilterId] = useState<string>('')
-  const [subscriptionAddedMode, setSubscriptionAddedMode] = useState<'' | 'day' | 'range' | 'month'>('')
-  const [subscriptionAddedDate, setSubscriptionAddedDate] = useState('')
-  const [subscriptionAddedFrom, setSubscriptionAddedFrom] = useState('')
-  const [subscriptionAddedTo, setSubscriptionAddedTo] = useState('')
-  const [subscriptionAddedMonth, setSubscriptionAddedMonth] = useState('')
   const [viewingId, setViewingId] = useState<number | null>(null)
   const [viewedStudent, setViewedStudent] = useState<any>(null)
   const [showViewModal, setShowViewModal] = useState(false)
@@ -175,28 +199,11 @@ export default function WebsiteStudentsPage() {
   }, [paymentAccounts, editLinkedPaymentAccount])
 
   const buildListFilters = useCallback((): StudentFilters => {
-    const filters: StudentFilters = { type: activeTab, per_page: 10000 }
+    const filters: StudentFilters = { type: 'website', per_page: 10000 }
     if (journeyStatusFilter) filters.student_journey_status = journeyStatusFilter
     if (teacherFilterId) filters.teacher_id = parseInt(teacherFilterId)
-    if (subscriptionAddedMode === 'day' && subscriptionAddedDate) {
-      filters.subscription_added_date = subscriptionAddedDate
-    } else if (subscriptionAddedMode === 'range') {
-      if (subscriptionAddedFrom) filters.subscription_added_from = subscriptionAddedFrom
-      if (subscriptionAddedTo) filters.subscription_added_to = subscriptionAddedTo
-    } else if (subscriptionAddedMode === 'month' && subscriptionAddedMonth) {
-      filters.subscription_added_month = subscriptionAddedMonth
-    }
     return filters
-  }, [
-    activeTab,
-    journeyStatusFilter,
-    teacherFilterId,
-    subscriptionAddedMode,
-    subscriptionAddedDate,
-    subscriptionAddedFrom,
-    subscriptionAddedTo,
-    subscriptionAddedMonth,
-  ])
+  }, [journeyStatusFilter, teacherFilterId])
 
   useEffect(() => {
     fetchStudents(buildListFilters())
@@ -206,7 +213,7 @@ export default function WebsiteStudentsPage() {
       .then((data) => setPaymentAccounts(data.payment_accounts))
       .catch(() => setPaymentAccounts([]))
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeTab, journeyStatusFilter, teacherFilterId, subscriptionAddedMode, subscriptionAddedDate, subscriptionAddedFrom, subscriptionAddedTo, subscriptionAddedMonth])
+  }, [journeyStatusFilter, teacherFilterId])
 
   const handleViewSubscriptionsOnly = async (student: any) => {
     try {
@@ -341,6 +348,7 @@ export default function WebsiteStudentsPage() {
               ? String(fullStudent.subscriptions_statistics.paid_subscriptions)
               : '',
         subscription_start_date: hasSubscriptions ? '' : subscriptionStartDate,
+        ...resolvePastSessionsFromStudent(fullStudent),
       })
       setShowEditModal(true)
     } catch (error: any) {
@@ -369,7 +377,12 @@ export default function WebsiteStudentsPage() {
         alert('يرجى اختيار المعلم قبل إضافة الاشتراك')
         return
       }
-      if (!editForm.subscription_start_date) {
+      if (editForm.past_sessions_mode === 'count') {
+        if (editForm.past_sessions_count === '') {
+          alert('يرجى إدخال عدد الحصص المكتملة سابقاً')
+          return
+        }
+      } else if (!editForm.subscription_start_date) {
         alert('يرجى اختيار تاريخ بداية الاشتراك')
         return
       }
@@ -407,13 +420,20 @@ export default function WebsiteStudentsPage() {
         updateData.weekly_schedule = toApiWeeklySchedule(editForm.weekly_schedule)
         updateData.hour = null
         applyDerivedSessionCounts(updateData, editForm.weekly_schedule)
+        applyPastSessionsToPayload(
+          updateData,
+          editForm.past_sessions_mode,
+          editForm.past_sessions_count
+        )
         if (editForm.past_months_count !== '') {
           updateData.past_months_count = parseInt(editForm.past_months_count, 10)
         }
         if (editForm.paid_months_count !== '') {
           updateData.paid_months_count = parseInt(editForm.paid_months_count, 10)
         }
-        updateData.subscription_start_date = editForm.subscription_start_date
+        if (editForm.past_sessions_mode !== 'count' && editForm.subscription_start_date) {
+          updateData.subscription_start_date = editForm.subscription_start_date
+        }
       }
 
       await updateStudent(editingId, updateData)
@@ -682,15 +702,14 @@ export default function WebsiteStudentsPage() {
 
   const filteredStudents = students.filter((student) => studentMatchesSearch(student, searchTerm))
 
-  // Filter to only show students of the active tab type
-  const tabStudents = filteredStudents.filter(student => student.type === activeTab)
+  const websiteStudents = filteredStudents.filter((student) => student.type === 'website')
 
   return (
     <div className="min-w-0 px-3 sm:px-4 lg:px-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4 mb-6 sm:mb-8">
-        <h1 className="text-xl sm:text-3xl lg:text-4xl font-bold text-primary-900">الطلاب</h1>
+        <h1 className="text-xl sm:text-3xl lg:text-4xl font-bold text-primary-900">طلاب الموقع</h1>
         <div className="flex flex-wrap items-center gap-2 sm:gap-3">
-          <div className="text-primary-600 font-medium text-sm sm:text-base shrink-0">إجمالي: {tabStudents.length}</div>
+          <div className="text-primary-600 font-medium text-sm sm:text-base shrink-0">إجمالي: {websiteStudents.length}</div>
           <button
             type="button"
             onClick={() => setShowAddModal(true)}
@@ -698,32 +717,6 @@ export default function WebsiteStudentsPage() {
           >
             <Plus className="w-4 h-4 shrink-0" />
             إضافة طالب
-          </button>
-        </div>
-      </div>
-
-      {/* Tabs */}
-      <div className="bg-white rounded-lg sm:rounded-xl border-2 border-primary-200 p-2 mb-4 sm:mb-6 shadow-lg">
-        <div className="flex gap-2 min-w-0">
-          <button
-            onClick={() => setActiveTab('website')}
-            className={`flex-1 px-4 sm:px-6 py-2 sm:py-3 rounded-lg font-semibold transition-all text-sm sm:text-base ${
-              activeTab === 'website'
-                ? 'bg-primary-600 text-white shadow-md'
-                : 'bg-primary-50 text-primary-700 hover:bg-primary-100'
-            }`}
-          >
-            طلاب الموقع
-          </button>
-          <button
-            onClick={() => setActiveTab('app')}
-            className={`flex-1 px-4 sm:px-6 py-2 sm:py-3 rounded-lg font-semibold transition-all text-sm sm:text-base ${
-              activeTab === 'app'
-                ? 'bg-primary-600 text-white shadow-md'
-                : 'bg-primary-50 text-primary-700 hover:bg-primary-100'
-            }`}
-          >
-            طلاب التطبيق
           </button>
         </div>
       </div>
@@ -780,71 +773,6 @@ export default function WebsiteStudentsPage() {
               placeholder="جميع المعلمين"
             />
           </div>
-          <div className="min-w-0">
-            <label className="block text-primary-900 font-semibold mb-2 text-right text-sm">تاريخ إضافة الاشتراك</label>
-            <select
-              value={subscriptionAddedMode}
-              onChange={(e) => {
-                const mode = e.target.value as '' | 'day' | 'range' | 'month'
-                setSubscriptionAddedMode(mode)
-                setSubscriptionAddedDate('')
-                setSubscriptionAddedFrom('')
-                setSubscriptionAddedTo('')
-                setSubscriptionAddedMonth('')
-              }}
-              className="w-full min-w-0 px-4 py-2 border-2 border-primary-200 rounded-lg focus:border-primary-500 outline-none text-right"
-              dir="rtl"
-            >
-              <option value="">بدون فلتر</option>
-              <option value="day">يوم محدد</option>
-              <option value="range">من تاريخ إلى تاريخ</option>
-              <option value="month">شهر محدد</option>
-            </select>
-          </div>
-          {subscriptionAddedMode === 'day' && (
-            <div className="min-w-0">
-              <label className="block text-primary-900 font-semibold mb-2 text-right text-sm">اليوم</label>
-              <input
-                type="date"
-                value={subscriptionAddedDate}
-                onChange={(e) => setSubscriptionAddedDate(e.target.value)}
-                className="w-full px-4 py-2 border-2 border-primary-200 rounded-lg focus:border-primary-500 outline-none"
-              />
-            </div>
-          )}
-          {subscriptionAddedMode === 'range' && (
-            <>
-              <div className="min-w-0">
-                <label className="block text-primary-900 font-semibold mb-2 text-right text-sm">من تاريخ</label>
-                <input
-                  type="date"
-                  value={subscriptionAddedFrom}
-                  onChange={(e) => setSubscriptionAddedFrom(e.target.value)}
-                  className="w-full px-4 py-2 border-2 border-primary-200 rounded-lg focus:border-primary-500 outline-none"
-                />
-              </div>
-              <div className="min-w-0">
-                <label className="block text-primary-900 font-semibold mb-2 text-right text-sm">إلى تاريخ</label>
-                <input
-                  type="date"
-                  value={subscriptionAddedTo}
-                  onChange={(e) => setSubscriptionAddedTo(e.target.value)}
-                  className="w-full px-4 py-2 border-2 border-primary-200 rounded-lg focus:border-primary-500 outline-none"
-                />
-              </div>
-            </>
-          )}
-          {subscriptionAddedMode === 'month' && (
-            <div className="min-w-0">
-              <label className="block text-primary-900 font-semibold mb-2 text-right text-sm">الشهر</label>
-              <input
-                type="month"
-                value={subscriptionAddedMonth}
-                onChange={(e) => setSubscriptionAddedMonth(e.target.value)}
-                className="w-full px-4 py-2 border-2 border-primary-200 rounded-lg focus:border-primary-500 outline-none"
-              />
-            </div>
-          )}
         </div>
       </div>
 
@@ -853,15 +781,15 @@ export default function WebsiteStudentsPage() {
         <div className="flex items-center justify-center py-10 sm:py-12">
           <div className="w-8 h-8 border-4 border-primary-600 border-t-transparent rounded-full animate-spin"></div>
         </div>
-      ) : tabStudents.length === 0 ? (
+      ) : websiteStudents.length === 0 ? (
         <div className="bg-white rounded-lg sm:rounded-xl border-2 border-primary-200 p-6 sm:p-8 text-center text-primary-600 text-sm sm:text-base shadow-lg">
-          {searchTerm || journeyStatusFilter || teacherFilterId || subscriptionAddedMode ? 'لا توجد نتائج' : `لا يوجد طلاب مسجلون ${activeTab === 'website' ? 'من الموقع' : 'من التطبيق'} بعد`}
+          {searchTerm || journeyStatusFilter || teacherFilterId ? 'لا توجد نتائج' : 'لا يوجد طلاب مسجلون من الموقع بعد'}
         </div>
       ) : (
         <>
           {/* Mobile Card View */}
           <div className="md:hidden space-y-3 sm:space-y-4">
-            {tabStudents.map((student) => (
+            {websiteStudents.map((student) => (
               <div
                 key={student.id}
                 className="bg-white rounded-lg sm:rounded-xl border-2 border-primary-200 p-3 sm:p-4 shadow-lg overflow-hidden min-w-0"
@@ -1004,7 +932,7 @@ export default function WebsiteStudentsPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {tabStudents.map((student) => (
+                  {websiteStudents.map((student) => (
                     <tr
                       key={student.id}
                       className="border-b border-primary-200 hover:bg-primary-50 transition-colors"
@@ -1115,7 +1043,7 @@ export default function WebsiteStudentsPage() {
             >
               <div className="flex items-center justify-between gap-2 mb-4 sm:mb-6">
                 <h2 className="text-xl sm:text-2xl font-bold text-primary-900 min-w-0">
-                  {activeTab === 'app' ? 'إضافة طالب من التطبيق' : 'إضافة طالب من الموقع'}
+                  إضافة طالب من الموقع
                 </h2>
                 <button
                   type="button"
@@ -1560,7 +1488,7 @@ export default function WebsiteStudentsPage() {
             >
               <div className="flex items-center justify-between gap-2 mb-4 sm:mb-6">
                 <h2 className="text-xl sm:text-2xl font-bold text-primary-900 min-w-0">
-                  {activeTab === 'app' ? 'تعديل طالب من التطبيق' : 'تعديل طالب من الموقع'}
+                  تعديل طالب من الموقع
                 </h2>
                 <button
                   type="button"
@@ -1675,23 +1603,8 @@ export default function WebsiteStudentsPage() {
 
                 {editForm.trial_session_attendance === 'attended' && !editingStudentHasSubscriptions && (
                   <div className="border-t-2 border-primary-200 pt-4">
-                    <h3 className="text-lg font-bold text-primary-900 mb-1 text-right">إضافة اشتراك</h3>
-                    <p className="text-sm text-primary-600 mb-4 text-right">
-                      أدخل بيانات الاشتراك والجدول لإنشاء اشتراك جديد للطالب.
-                    </p>
+                    <h3 className="text-sm font-semibold text-primary-900 mb-2 text-right">إضافة اشتراك</h3>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                      <div>
-                        <label className="block text-primary-900 font-semibold mb-2 text-right">تاريخ بداية الاشتراك</label>
-                        <input
-                          type="date"
-                          value={editForm.subscription_start_date}
-                          onChange={(e) =>
-                            setEditForm({ ...editForm, subscription_start_date: e.target.value })
-                          }
-                          className="w-full px-4 py-2 border-2 border-primary-200 rounded-lg focus:border-primary-500 outline-none"
-                          required
-                        />
-                      </div>
                       <div>
                         <label className="block text-primary-900 font-semibold mb-2 text-right">الباقة</label>
                         <select
@@ -1709,14 +1622,23 @@ export default function WebsiteStudentsPage() {
                         </select>
                       </div>
                       <div className="sm:col-span-2">
+                        <CompactSubscriptionSettings
+                          idPrefix="website_edit_subscription"
+                          value={{
+                            past_sessions_mode: editForm.past_sessions_mode,
+                            past_sessions_count: editForm.past_sessions_count,
+                            subscription_start_date: editForm.subscription_start_date,
+                            past_months_count: editForm.past_months_count,
+                            paid_months_count: editForm.paid_months_count,
+                          }}
+                          onChange={(subscriptionSettings) =>
+                            setEditForm({ ...editForm, ...subscriptionSettings })
+                          }
+                        />
+                      </div>
+                      <div className="sm:col-span-2">
                         <label className="block text-primary-900 font-semibold mb-2 text-right">جدول الأسبوع</label>
-                        <p className="text-xs text-primary-500 mb-3 text-right">
-                          استخدام جدول متقدم (وقت مختلف لكل يوم). يُحسب عدد الحصص الأسبوعية والشهرية تلقائياً (شهري = أسبوعي × 4).
-                        </p>
-                        <div className="space-y-3 p-4 bg-primary-50 rounded-lg border-2 border-primary-200">
-                          <p className="text-sm text-primary-600 mb-3 text-right">
-                            حدد وقت الحصة ومدة الحصة (اختياري) لكل يوم
-                          </p>
+                        <div className="space-y-2 p-3 bg-primary-50 rounded-lg border border-primary-200">
                           {DAYS_OF_WEEK.map((day) => (
                             <div key={day.value} className="flex items-center gap-3 flex-wrap">
                               <label className="w-24 text-primary-700 font-medium">{day.label}</label>
@@ -1758,30 +1680,6 @@ export default function WebsiteStudentsPage() {
                             </div>
                           ))}
                         </div>
-                      </div>
-                      <div>
-                        <label className="block text-primary-900 font-semibold mb-2 text-right">عدد الأشهر السابقة</label>
-                        <input
-                          type="number"
-                          min="0"
-                          max="120"
-                          value={editForm.past_months_count}
-                          onChange={(e) => setEditForm({ ...editForm, past_months_count: e.target.value })}
-                          className="w-full px-4 py-2 border-2 border-primary-200 rounded-lg focus:border-primary-500 outline-none"
-                          placeholder="0"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-primary-900 font-semibold mb-2 text-right">عدد الأشهر المدفوعة</label>
-                        <input
-                          type="number"
-                          min="0"
-                          max="120"
-                          value={editForm.paid_months_count}
-                          onChange={(e) => setEditForm({ ...editForm, paid_months_count: e.target.value })}
-                          className="w-full px-4 py-2 border-2 border-primary-200 rounded-lg focus:border-primary-500 outline-none"
-                          placeholder="0"
-                        />
                       </div>
                     </div>
                   </div>
